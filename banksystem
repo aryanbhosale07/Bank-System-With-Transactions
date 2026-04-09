@@ -1,0 +1,225 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX 100
+
+// Transaction Queue Node
+struct Transaction {
+    char type[10];
+    float amount;
+    struct Transaction* next;
+};
+
+// Customer Structure
+struct Customer {
+    int accNo;
+    float balance;
+    int isActive;
+    struct Transaction *front, *rear; // FIFO Queue
+};
+
+struct Customer bank[MAX];
+
+int customerCount = 0;
+float totalDeposit = 0;
+float totalWithdrawal = 0;
+
+// Create Transaction Node
+struct Transaction* createTransaction(char type[], float amount) {
+    struct Transaction* temp = (struct Transaction*)malloc(sizeof(struct Transaction));
+    strcpy(temp->type, type);
+    temp->amount = amount;
+    temp->next = NULL;
+    return temp;
+}
+
+// Enqueue Transaction (FIFO)
+void enqueue(struct Customer *cust, char type[], float amount) {
+    struct Transaction* temp = createTransaction(type, amount);
+
+    if (cust->rear == NULL) {
+        cust->front = cust->rear = temp;
+    } else {
+        cust->rear->next = temp;
+        cust->rear = temp;
+    }
+}
+
+// Open Account
+void openAccount() {
+    if (customerCount >= MAX) {
+        printf("Bank is full!\n");
+        return;
+    }
+
+    int accNo = 10000 + (customerCount + 1);
+
+    bank[customerCount].accNo = accNo;
+    bank[customerCount].balance = 0;
+    bank[customerCount].isActive = 1;
+    bank[customerCount].front = bank[customerCount].rear = NULL;
+
+    customerCount++;
+
+    printf("Account Created Successfully!\n");
+    printf("Your Account Number: %d\n", accNo);
+}
+
+// Find Customer
+int findCustomer(int accNo) {
+    for (int i = 0; i < customerCount; i++) {
+        if (bank[i].accNo == accNo && bank[i].isActive)
+            return i;
+    }
+    return -1;
+}
+
+// Deposit
+void deposit(int index) {
+    float amount;
+    printf("Enter amount to Deposit: ");
+    scanf("%f", &amount);
+
+    bank[index].balance += amount;
+    totalDeposit += amount;
+
+    enqueue(&bank[index], "Deposit", amount);
+
+    printf("Updated Balance: %.2f Rs\n", bank[index].balance);
+}
+
+// Withdraw
+void withdraw(int index) {
+    float amount;
+    printf("Enter amount to Withdraw: ");
+    scanf("%f", &amount);
+
+    if (amount > bank[index].balance) {
+        printf("Insufficient Balance!\n");
+        return;
+    }
+
+    bank[index].balance -= amount;
+    totalWithdrawal += amount;
+
+    enqueue(&bank[index], "Withdraw", amount);
+
+    printf("Updated Balance: %.2f Rs\n", bank[index].balance);
+}
+
+// Account Menu
+void accountMenu(int index) {
+    int choice;
+
+    printf("\nAccount No: %d\n", bank[index].accNo);
+    printf("Available Balance: %.2f Rs\n", bank[index].balance);
+
+    printf("1. Deposit\n2. Withdraw\n");
+    scanf("%d", &choice);
+
+    if (choice == 1)
+        deposit(index);
+    else if (choice == 2)
+        withdraw(index);
+    else
+        printf("Invalid choice!\n");
+}
+
+// Bank Info
+void bankInfo() {
+    float totalBalance = 0;
+
+    for (int i = 0; i < customerCount; i++) {
+        if (bank[i].isActive)
+            totalBalance += bank[i].balance;
+    }
+
+    printf("\nTotal Deposit: %.2f Rs\n", totalDeposit);
+    printf("Total Withdrawal: %.2f Rs\n", totalWithdrawal);
+    printf("Total Available Balance: %.2f Rs\n", totalBalance);
+}
+
+// Delete Account
+void deleteAccount() {
+    int accNo;
+    printf("Enter Account Number to Delete: ");
+    scanf("%d", &accNo);
+
+    int index = findCustomer(accNo);
+
+    if (index == -1) {
+        printf("Account not found!\n");
+        return;
+    }
+
+    bank[index].isActive = 0;
+    printf("Account Deleted Successfully!\n");
+}
+
+// Display Accounts
+void displayAccounts() {
+    printf("\n--- Account Status ---\n");
+
+    for (int i = 0; i < customerCount; i++) {
+        printf("Account No: %d -> %s\n",
+               bank[i].accNo,
+               bank[i].isActive ? "Active" : "Deleted");
+    }
+}
+
+// Main Function
+int main() {
+    int choice, accNo, index;
+
+    while (1) {
+        printf("\n--- BANK SYSTEM ---\n");
+        printf("1. Open New Account\n");
+        printf("2. Already Have Account\n");
+        printf("3. Bank Info\n");
+        printf("4. Delete Account\n");
+        printf("5. Display Accounts\n");
+        printf("6. Exit\n");
+
+        scanf("%d", &choice);
+
+        switch (choice) {
+        case 1:
+            openAccount();
+            break;
+
+        case 2:
+            printf("Enter Account Number: ");
+            scanf("%d", &accNo);
+
+            index = findCustomer(accNo);
+
+            if (index == -1) {
+                printf("Account not found!\n");
+            } else {
+                accountMenu(index);
+            }
+            break;
+
+        case 3:
+            bankInfo();
+            break;
+
+        case 4:
+            deleteAccount();
+            break;
+
+        case 5:
+            displayAccounts();
+            break;
+
+        case 6:
+            exit(0);
+
+        default:
+            printf("Invalid choice!\n");
+        }
+    }
+
+    return 0;
+}
